@@ -82,6 +82,7 @@ input[type=range]{width:100%;accent-color:var(--accent);margin:0}
 .tile:hover{border-color:var(--ink-3)}
 .tile[aria-pressed=true]{border-color:var(--ink);box-shadow:0 0 0 1px var(--ink)}
 .tile .sw{width:34px;height:34px;border-radius:50%;flex:none;box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)}
+.tile .orb{width:42px;height:42px;flex:none;display:block;margin:-3px -2px -3px -3px}
 .tile .tx{display:grid;min-width:0}
 .tile b{font-weight:600;font-size:13px}
 .tile small{font-size:11px;color:var(--ink-2);line-height:1.25}
@@ -389,7 +390,10 @@ const SAMPLE='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><pat
 const STYLES={
   metal:{name:'Metal',blurb:'Polished reflections',sw:'linear-gradient(135deg,#f8fafc 0%,#8a94a3 32%,#eef1f5 48%,#5b6573 70%,#cfd5de 100%)',round:.06,seg:5,div:16,crease:42,light:[0,0],tone:true,bg:'mist',env:'studio'},
   glass:{name:'Glass',blurb:'Clear or frosted',sw:'radial-gradient(circle at 30% 25%,rgba(255,255,255,.95),rgba(190,225,255,.6) 40%,rgba(110,160,225,.5) 100%)',round:.1,seg:7,div:16,crease:50,light:[0,0],tone:true,bg:'lilac',env:'softbox'},
-  material:{name:'Material',blurb:'Clay, wood, marble',sw:'radial-gradient(circle at 35% 30%,#f0a58a,#c8664a 70%)',round:.07,seg:8,div:16,crease:50,light:[.8,.25],tone:true,bg:'sand',env:'softbox'},
+  clay:{name:'Clay',blurb:'Soft, matte, handmade',sw:'radial-gradient(circle at 35% 30%,#f0a58a,#c8664a 70%)',round:.16,seg:8,div:16,crease:50,light:[.8,.25],tone:true,bg:'sand',env:'softbox'},
+  wood:{name:'Wood',blurb:'Warm grain',sw:'linear-gradient(100deg,#dea86a,#a8703a 45%,#d9a064 60%,#80522a)',round:.06,seg:6,div:16,crease:50,light:[.8,.25],tone:true,bg:'mist',env:'softbox'},
+  marble:{name:'Marble',blurb:'Polished veined stone',sw:'linear-gradient(135deg,#fafafc,#c9ccd6 40%,#f4f5f9 60%,#9ea3b2)',round:.06,seg:6,div:16,crease:50,light:[.8,.25],tone:true,bg:'ink',env:'softbox'},
+  plastic:{name:'Plastic',blurb:'Glossy and smooth',sw:'radial-gradient(circle at 35% 30%,#8fb0ff,#2f5cff 70%)',round:.1,seg:7,div:16,crease:50,light:[.6,.2],tone:true,bg:'peach',env:'softbox'},
   neon:{name:'Neon',blurb:'Glowing tubes',sw:'radial-gradient(circle,#fff 0 16%,#19e6ff 22% 38%,#0a1230 72%)',round:.13,seg:10,div:16,crease:60,light:[0,0],tone:false,bg:'midnight',env:'night'},
   cartoon:{name:'Cartoon',blurb:'Flat tones, inked edge',sw:'linear-gradient(135deg,#ffd84a 0 48%,#ffab2e 48% 76%,#e0701c 76%)',round:.07,seg:4,div:16,crease:50,light:[2.2,.9],tone:false,bg:'peach',env:'softbox'},
   retro:{name:'Retro',blurb:'80s chrome',sw:'linear-gradient(180deg,#3b2bd6 0%,#ff4fd8 47%,#fff 50%,#2a0a4a 53%,#12031f 100%)',round:.07,seg:6,div:16,crease:45,light:[0,0],tone:true,bg:'dusk',env:'studio'},
@@ -412,7 +416,7 @@ const S={
   opts:{
     metal:{finish:'chrome',rough:.12},
     glass:{tint:'clear',frost:.06,thick:1.2},
-    material:{kind:'clay'},
+    clay:{},wood:{},marble:{},plastic:{rough:.32},
     neon:{glow:1.4,core:.55},
     cartoon:{outline:.05,tones:3},
     retro:{palette:'classic'},
@@ -426,7 +430,7 @@ const S={
   exp:{fmt:'png',isize:2160,vsize:1080,motion:'turntable',dur:5},
   touchedBg:false,touchedEnv:false
 };
-const defaultRound=()=>S.style==='material'?(S.opts.material.kind==='clay'?.16:.07):STYLES[S.style].round;
+const defaultRound=()=>STYLES[S.style].round;
 const curRound=()=>S.round[S.style]!==undefined?S.round[S.style]:defaultRound();
 
 /* ---------- renderer ---------- */
@@ -711,11 +715,14 @@ function materialFor(layerColor){
     const tints={ice:'#bfe6ff',smoke:'#3a3f4a',rose:'#ffb3c7'};
     const tc=o.tint==='logo'?layerColor.clone():(tints[o.tint]?new THREE.Color(tints[o.tint]):new THREE.Color(1,1,1));
     m=new THREE.MeshPhysicalMaterial({color:tc,transmission:1,thickness:o.thick,ior:1.5,roughness:o.frost,metalness:0,attenuationColor:tc,attenuationDistance:o.tint==='clear'?Infinity:1.4,clearcoat:1,clearcoatRoughness:.05}); env=1.3;
-  }else if(st==='material'){
-    if(o.kind==='clay') m=new THREE.MeshPhysicalMaterial({color:base,roughness:.92,metalness:0,sheen:.6,sheenRoughness:.7,sheenColor:new THREE.Color(1,1,1).lerp(base,.35),bumpMap:getTex('grain'),bumpScale:.35});
-    else if(o.kind==='plastic') m=new THREE.MeshPhysicalMaterial({color:base,roughness:.32,metalness:0,clearcoat:1,clearcoatRoughness:.06});
-    else if(o.kind==='wood') m=new THREE.MeshStandardMaterial({map:getTex('wood'),roughness:.55,metalness:0});
-    else m=new THREE.MeshPhysicalMaterial({map:getTex('marble'),roughness:.18,metalness:0,clearcoat:.7,clearcoatRoughness:.08});
+  }else if(st==='clay'){
+    m=new THREE.MeshPhysicalMaterial({color:base,roughness:.92,metalness:0,sheen:.6,sheenRoughness:.7,sheenColor:new THREE.Color(1,1,1).lerp(base,.35),bumpMap:getTex('grain'),bumpScale:.35});
+  }else if(st==='plastic'){
+    m=new THREE.MeshPhysicalMaterial({color:base,roughness:o.rough,metalness:0,clearcoat:1,clearcoatRoughness:.06});
+  }else if(st==='wood'){
+    m=new THREE.MeshStandardMaterial({map:getTex('wood'),roughness:.55,metalness:0});
+  }else if(st==='marble'){
+    m=new THREE.MeshPhysicalMaterial({map:getTex('marble'),roughness:.18,metalness:0,clearcoat:.7,clearcoatRoughness:.08});
   }else if(st==='neon'){
     const glow=visibleGlow(base), core=glow.clone().lerp(new THREE.Color(1,1,1),o.core);
     m=new THREE.MeshStandardMaterial({color:glow.clone().multiplyScalar(.15),emissive:core,emissiveIntensity:1.9,roughness:.35,metalness:0});
@@ -861,7 +868,7 @@ function renderTiles(){
   const wrap=$('#tiles'); wrap.textContent='';
   Object.entries(STYLES).forEach(([id,st])=>{
     const b=h('button',{type:'button',class:'tile','aria-pressed':String(S.style===id)},
-      h('span',{class:'sw',style:'background:'+st.sw+(id==='lowpoly'?';border-radius:8px;clip-path:polygon(25% 5%,75% 5%,100% 50%,75% 95%,25% 95%,0 50%)':'')+(id==='cartoon'?';box-shadow:0 0 0 2.5px #14141a':'')}),
+      st.icon?h('img',{class:'orb',src:st.icon,alt:''}):h('span',{class:'sw',style:'background:'+st.sw+(id==='lowpoly'?';border-radius:8px;clip-path:polygon(25% 5%,75% 5%,100% 50%,75% 95%,25% 95%,0 50%)':'')+(id==='cartoon'?';box-shadow:0 0 0 2.5px #14141a':'')}),
       h('span',{class:'tx'},h('b',{text:st.name}),h('small',{text:st.blurb})));
     b.addEventListener('click',()=>setStyle(id));
     wrap.append(b);
@@ -889,10 +896,11 @@ function renderOptions(){
     body.append(slider('Frost',0,.6,.01,o.frost,on('frost')));
     body.append(slider('Thickness',0,3,.05,o.thick,on('thick')));
     body.append(h('p',{class:'note',text:'Glass bends the background behind it, so it looks best on a gradient or image.'}));
-  }else if(st==='material'){
-    body.append(h('div',{class:'field'},h('span',{class:'lbl'},h('span',{text:'Material'})),chips([{id:'clay',label:'Clay'},{id:'plastic',label:'Plastic'},{id:'wood',label:'Wood'},{id:'marble',label:'Marble'}],o.kind,k=>{ o.kind=k; renderOptions(); renderShape(); rebuildGeometry(false); },'Material type')));
-    if(o.kind==='clay'||o.kind==='plastic') body.append(colorControl());
-    else body.append(h('p',{class:'note',text:'Wood and marble use their own texture, so logo colors don\u2019t apply.'}));
+  }else if(st==='clay'||st==='plastic'){
+    body.append(colorControl());
+    if(st==='plastic') body.append(slider('Roughness',0,.8,.01,o.rough,on('rough')));
+  }else if(st==='wood'||st==='marble'){
+    body.append(h('p',{class:'note',text:'This style uses its own texture, so logo colors and custom colors don\u2019t apply.'}));
   }else if(st==='neon'){
     body.append(colorControl());
     body.append(slider('Glow',0,3,.05,o.glow,on('glow')));
@@ -1161,6 +1169,69 @@ function loop(now){
   renderFrame();
 }
 
+/* ---------- 3D orb icons for the style tiles ---------- */
+async function makeOrbIcons(){
+  let r2;
+  try{ r2=new THREE.WebGLRenderer({antialias:true,alpha:true,preserveDrawingBuffer:true}); }catch(e){ return; }
+  const SZ=128, mk=document.createElement('canvas'); mk.width=mk.height=SZ; const x=mk.getContext('2d');
+  r2.setPixelRatio(1); r2.setSize(SZ,SZ,false); r2.outputEncoding=THREE.sRGBEncoding; r2.setClearColor(0x000000,0);
+  const pm=new THREE.PMREMGenerator(r2), envs={};
+  const E={studio:()=>buildEnv('studio',.6),softbox:()=>buildEnv('softbox',.6),night:()=>buildEnv('night',.6),retro:()=>buildRetroEnv('sunset',.4)};
+  const sphere=new THREE.SphereGeometry(1,64,48), ico=new THREE.IcosahedronGeometry(1,1);
+  const tex=(n,rep)=>{ const t=getTex(n).clone(); t.repeat.set(rep,rep); t.needsUpdate=true; return t; };
+  const std=o=>new THREE.MeshStandardMaterial(o), phys=o=>new THREE.MeshPhysicalMaterial(o);
+  const ramp=(()=>{ const d=new Uint8Array([90,172,255]); const t=new THREE.DataTexture(d,3,1,THREE.RedFormat); t.minFilter=t.magFilter=THREE.NearestFilter; t.generateMipmaps=false; t.needsUpdate=true; return t; })();
+  const neon=new THREE.Color('#19e6ff');
+  const defs={
+    metal:()=>({env:'studio',tone:true,light:[0,0],mat:std({color:new THREE.Color().setRGB(.93,.95,.98),metalness:1,roughness:.08})}),
+    glass:()=>({env:'softbox',tone:true,light:[0,0],clip:true,bg:true,mat:phys({color:new THREE.Color(1,1,1),transmission:1,thickness:1.4,ior:1.5,roughness:.02,metalness:0,clearcoat:1,clearcoatRoughness:.04})}),
+    clay:()=>({env:'softbox',tone:true,light:[.8,.25],mat:phys({color:new THREE.Color('#e0795c'),roughness:.92,sheen:.6,sheenRoughness:.7,sheenColor:new THREE.Color('#ffd9cc'),bumpMap:tex('grain',3),bumpScale:.35})}),
+    wood:()=>({env:'softbox',tone:true,light:[.8,.25],mat:std({map:tex('wood',1),roughness:.5,metalness:0})}),
+    marble:()=>({env:'softbox',tone:true,light:[.8,.25],mat:phys({map:tex('marble',1),roughness:.16,metalness:0,clearcoat:.7,clearcoatRoughness:.08})}),
+    plastic:()=>({env:'softbox',tone:true,light:[.6,.2],mat:phys({color:new THREE.Color('#2f5cff'),roughness:.28,metalness:0,clearcoat:1,clearcoatRoughness:.06})}),
+    neon:()=>({env:'night',tone:false,light:[0,0],z:5.4,glow:true,mat:std({color:neon.clone().multiplyScalar(.15),emissive:neon.clone().lerp(new THREE.Color(1,1,1),.55),emissiveIntensity:1.6,roughness:.35,metalness:0})}),
+    cartoon:()=>({env:'softbox',tone:false,light:[2.2,.9],hull:true,mat:new THREE.MeshToonMaterial({color:new THREE.Color('#ffb52e'),gradientMap:ramp})}),
+    retro:()=>({env:'retro',tone:true,light:[0,0],mat:std({color:new THREE.Color(1,1,1),metalness:1,roughness:.07})}),
+    lowpoly:()=>({env:'studio',tone:false,light:[1.1,.35],ico:true,mat:std({color:new THREE.Color('#4cc9a4'),roughness:.55,metalness:.05,flatShading:true})})
+  };
+  for(const id of Object.keys(STYLES)){
+    const mk3=defs[id]; if(!mk3) continue;
+    const d=mk3(), extra=[];
+    try{
+      const sc=new THREE.Scene(), cam=new THREE.PerspectiveCamera(30,1,.1,50); cam.position.set(0,0,d.z||4.2);
+      sc.environment=(envs[d.env]||(envs[d.env]=pm.fromScene(E[d.env](),0,.1,100))).texture;
+      if(d.light[0]){ const dl=new THREE.DirectionalLight(0xffffff,d.light[0]); dl.position.set(3,4,5); sc.add(dl); sc.add(new THREE.HemisphereLight(0xffffff,0x555566,d.light[1])); }
+      sc.add(new THREE.Mesh(d.ico?ico:sphere,d.mat));
+      if(d.hull){ const hm=outlineMaterial(.06); extra.push(hm); sc.add(new THREE.Mesh(sphere,hm)); }
+      if(d.bg){
+        const c=document.createElement('canvas'); c.width=c.height=128; const g=c.getContext('2d');
+        const gr=g.createLinearGradient(0,0,128,128); gr.addColorStop(0,'#6f9dff'); gr.addColorStop(1,'#ffb3e0'); g.fillStyle=gr; g.fillRect(0,0,128,128);
+        g.fillStyle='rgba(255,255,255,.55)'; for(let i=-2;i<8;i++){ g.save(); g.translate(i*22,0); g.rotate(.5); g.fillRect(0,-20,9,200); g.restore(); }
+        const t=new THREE.CanvasTexture(c); t.encoding=THREE.sRGBEncoding; extra.push(t);
+        const bm=new THREE.MeshBasicMaterial({map:t,toneMapped:false}); extra.push(bm);
+        const pl=new THREE.Mesh(new THREE.PlaneGeometry(7,7),bm); pl.position.z=-1.6; sc.add(pl);
+      }
+      r2.toneMapping=d.tone?THREE.ACESFilmicToneMapping:THREE.NoToneMapping;
+      r2.render(sc,cam);
+      x.clearRect(0,0,SZ,SZ);
+      if(d.glow){
+        const g=x.createRadialGradient(64,64,8,64,64,64);
+        g.addColorStop(0,'rgba(25,230,255,.6)'); g.addColorStop(.55,'rgba(25,230,255,.2)'); g.addColorStop(1,'rgba(25,230,255,0)');
+        x.fillStyle=g; x.fillRect(0,0,SZ,SZ);
+      }
+      if(d.clip){ x.save(); x.beginPath(); x.arc(SZ/2,SZ/2,SZ*.457,0,Math.PI*2); x.clip(); }
+      x.drawImage(r2.domElement,0,0);
+      if(d.clip) x.restore();
+      STYLES[id].icon=mk.toDataURL('image/png');
+      renderTiles();
+    }catch(e){}
+    d.mat.dispose(); extra.forEach(o=>o.dispose&&o.dispose());
+    await new Promise(r=>setTimeout(r,0));
+  }
+  Object.values(envs).forEach(e=>e.dispose()); pm.dispose(); sphere.dispose(); ico.dispose(); ramp.dispose();
+  r2.dispose(); if(r2.forceContextLoss) r2.forceContextLoss();
+}
+
 /* ---------- boot ---------- */
 renderTiles(); renderFrameChips(); renderOptions(); renderShape(); renderLighting(); renderBackground(); renderExport(); syncMotionBtn();
 rebuildEnv();
@@ -1168,6 +1239,7 @@ layout();
 loadLogo(SAMPLE,'Sample mark');
 $('#fileName').textContent='Sample mark';
 requestAnimationFrame(loop);
+setTimeout(makeOrbIcons,250);
 })();
 </script>
 </body>
