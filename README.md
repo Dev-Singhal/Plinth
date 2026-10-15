@@ -1,6 +1,6 @@
 # Plinth
 
-Turn an SVG logo into a styled 3D render. Pick a style (metal, glass, material, neon, cartoon, retro, low poly), set the background, orbit to any angle, and export PNG, JPG, GLB or an animated video.
+Turn an SVG logo into a styled 3D render. Pick a style (metal, glass, clay, wood, marble, plastic, neon, cartoon, retro, low poly), set the background, orbit to any angle, and export PNG, JPG, GLB or an animated video.
 
 Everything runs in the browser. There is no build step and nothing to install: the whole app is `index.html`, which loads Three.js and fonts from a CDN.
 
