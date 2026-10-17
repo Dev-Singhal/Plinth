@@ -1,9 +1,10 @@
-<!doctype html>
+S<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Plinth: SVG logo to 3D</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Crect%20width='64'%20height='64'%20rx='14'%20fill='%23dcdcd8'/%3E%3Cg%20transform='translate(7.7%207.7)%20scale(.486)'%20fill='%23101114'%3E%3Cpath%20d='M0%2015%2024%2024.6%20100%200.3%20100%2015.3%2024%2039.6%200%2030ZM0%2034.5%2024%2044.1%2038%2039.6%2038%2048.6%2024%2053.1%200%2043.5ZM68%2030%20100%2019.8%20100%2028.8%2068%2039ZM0%2048%2024%2057.6%20100%2033.3%20100%2048.3%2024%2072.6%200%2063ZM0%2067.5%2024%2077.1%2042%2071.3%2042%2093.7%2024%2099.5%200%2089.9Z'/%3E%3C/g%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
@@ -48,7 +49,7 @@ button{cursor:pointer}
 .app{height:100%;display:grid;grid-template-columns:340px minmax(0,1fr);grid-template-rows:48px minmax(0,1fr)}
 .topbar{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;padding:0 16px;background:var(--panel);border-bottom:1px solid var(--line)}
 .brand{display:flex;align-items:center;gap:10px;font:700 17px/1 var(--font-display);letter-spacing:-.01em}
-.brand svg{width:22px;height:22px;display:block}
+.brand svg{width:24px;height:24px;display:block}
 .topbar .sub{color:var(--ink-2)}
 .panel{background:var(--panel);overflow:hidden;display:flex;flex-direction:column;min-height:0}
 .sidebar{border-right:1px solid var(--line)}
@@ -159,7 +160,7 @@ input[type=color]{width:34px;height:26px;padding:0;border:1px solid var(--line);
 <div class="app" id="app">
   <header class="topbar">
     <div class="brand">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 15.5 12 20l9-4.5v-3L12 17l-9-4.5z" fill="currentColor" opacity=".35"/><path d="M3 10.5 12 15l9-4.5v-3L12 12 3 7.5z" fill="currentColor" opacity=".65"/><path d="M3 5.5 12 10l9-4.5L12 1z" fill="currentColor"/></svg>
+      <svg viewBox="0 0 100 100" aria-hidden="true"><path fill="currentColor" d="M0 15 24 24.6 100 0.3 100 15.3 24 39.6 0 30ZM0 33 24 42.6 34 39.4 34 48.4 24 51.6 0 42ZM74 26.6 100 18.3 100 27.3 74 35.6ZM0 45 24 54.6 100 30.3 100 45.3 24 69.6 0 60ZM0 63 24 72.6 40 67.5 40 94.4 24 99.5 0 89.9Z"/></svg>
       Plinth
     </div>
     <span class="sub">SVG logo to 3D, styled and exported</span>
@@ -364,7 +365,73 @@ function smooth(geom,deg){
   g.scale(0.01,0.01,0.01);
   return g;
 }
+function pip(pts,x,y){
+  let ins=false;
+  for(let i=0,j=pts.length-1;i<pts.length;j=i++){
+    const a=pts[i],b=pts[j];
+    if((a.y>y)!==(b.y>y)&&x<(b.x-a.x)*(y-a.y)/(b.y-a.y)+a.x) ins=!ins;
+  }
+  return ins;
+}
+function legoTemplate(c,th,round,studs){
+  const hw=c*0.985/2, k=Math.min(c*0.07,hw*0.5);
+  const sh=new THREE.Shape();
+  sh.moveTo(-hw+k,-hw); sh.lineTo(hw-k,-hw); sh.quadraticCurveTo(hw,-hw,hw,-hw+k); sh.lineTo(hw,hw-k); sh.quadraticCurveTo(hw,hw,hw-k,hw);
+  sh.lineTo(-hw+k,hw); sh.quadraticCurveTo(-hw,hw,-hw,hw-k); sh.lineTo(-hw,-hw+k); sh.quadraticCurveTo(-hw,-hw,-hw+k,-hw);
+  const bev=Math.max(0,Math.min(round*c*1.4,hw*0.35,th*0.3));
+  const body=Math.max(th-2*bev,th*0.2);
+  let g=new THREE.ExtrudeGeometry(sh,{depth:body,curveSegments:2,steps:1,bevelEnabled:bev>0.0005,bevelThickness:bev,bevelSize:bev,bevelOffset:-bev,bevelSegments:2});
+  g.translate(0,0,-body/2);
+  g=smooth(g,40);
+  const parts=[g];
+  if(studs){
+    const sg=new THREE.CylinderGeometry(c*0.3,c*0.3,c*0.23,20,1);
+    sg.rotateX(Math.PI/2); sg.translate(0,0,th/2+c*0.115-c*0.002);
+    parts.push(sg.toNonIndexed());
+  }
+  let tot=0; parts.forEach(q=>{ tot+=q.attributes.position.count; });
+  const pos=new Float32Array(tot*3), nor=new Float32Array(tot*3); let o=0;
+  parts.forEach(q=>{ pos.set(q.attributes.position.array,o); nor.set(q.attributes.normal.array,o); o+=q.attributes.position.count*3; q.dispose(); });
+  return {pos,nor};
+}
+function buildLego(parsed,norm,skip,p){
+  const n=Math.max(4,Math.round(p.lego.n)), c=LOGO/n, th=c*1.2*(p.depth/0.5);
+  const polys=parsed.layers.map((layer,li)=>{
+    if(li===skip) return null;
+    return buildShapes(layer,norm,10).map(s=>{
+      const o=s.getPoints(), holes=s.holes.map(h=>h.getPoints());
+      let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
+      o.forEach(q=>{ if(q.x<x0)x0=q.x; if(q.x>x1)x1=q.x; if(q.y<y0)y0=q.y; if(q.y>y1)y1=q.y; });
+      return {o,holes,x0,y0,x1,y1};
+    });
+  });
+  const inL=(L,x,y)=>L.some(s=>x>=s.x0&&x<=s.x1&&y>=s.y0&&y<=s.y1&&pip(s.o,x,y)&&!s.holes.some(h=>pip(h,x,y)));
+  const cells=parsed.layers.map(()=>[]), off=[-.3,0,.3];
+  for(let j=0;j<n;j++)for(let i=0;i<n;i++){
+    const cx=-LOGO/2+(i+.5)*c, cy=-LOGO/2+(j+.5)*c, cnt={}; let tot=0;
+    for(const oy of off)for(const ox of off){
+      const x=cx+ox*c, y=cy+oy*c;
+      for(let li=polys.length-1;li>=0;li--){ if(polys[li]&&inL(polys[li],x,y)){ cnt[li]=(cnt[li]||0)+1; tot++; break; } }
+    }
+    if(tot>=4){ let best=-1,bc=0; for(const k in cnt){ if(cnt[k]>bc){ bc=cnt[k]; best=+k; } } cells[best].push([cx,cy]); }
+  }
+  const tpl=legoTemplate(c,th,p.round,p.lego.studs), per=tpl.pos.length, out=[];
+  cells.forEach((cl,li)=>{
+    if(!cl.length) return;
+    const pos=new Float32Array(per*cl.length), nor=new Float32Array(per*cl.length);
+    cl.forEach((q,k)=>{
+      const o=k*per;
+      for(let a=0;a<per;a+=3){ pos[o+a]=tpl.pos[a]+q[0]; pos[o+a+1]=tpl.pos[a+1]+q[1]; pos[o+a+2]=tpl.pos[a+2]; }
+      nor.set(tpl.nor,o);
+    });
+    const g=new THREE.BufferGeometry();
+    g.setAttribute('position',new THREE.BufferAttribute(pos,3)); g.setAttribute('normal',new THREE.BufferAttribute(nor,3)); g.computeBoundingBox();
+    out.push({geom:g,hull:null,color:parsed.layers[li].color});
+  });
+  return out;
+}
 function buildLogoGeometry(parsed,norm,skip,p){
+  if(p.lego) return buildLego(parsed,norm,skip,p);
   const out=[];
   parsed.layers.forEach((layer,i)=>{
     if(i===skip) return;
@@ -394,6 +461,7 @@ const STYLES={
   wood:{name:'Wood',blurb:'Warm grain',sw:'linear-gradient(100deg,#dea86a,#a8703a 45%,#d9a064 60%,#80522a)',round:.06,seg:6,div:16,crease:50,light:[.8,.25],tone:true,bg:'mist',env:'softbox'},
   marble:{name:'Marble',blurb:'Polished veined stone',sw:'linear-gradient(135deg,#fafafc,#c9ccd6 40%,#f4f5f9 60%,#9ea3b2)',round:.06,seg:6,div:16,crease:50,light:[.8,.25],tone:true,bg:'ink',env:'softbox'},
   plastic:{name:'Plastic',blurb:'Glossy and smooth',sw:'radial-gradient(circle at 35% 30%,#8fb0ff,#2f5cff 70%)',round:.1,seg:7,div:16,crease:50,light:[.6,.2],tone:true,bg:'peach',env:'softbox'},
+  lego:{name:'Lego',blurb:'Studded plastic bricks',sw:'radial-gradient(circle at 35% 30%,#ff6a5a,#c8140c 70%)',round:.05,seg:1,div:12,crease:0,light:[.7,.2],tone:true,bg:'chalk',env:'softbox'},
   neon:{name:'Neon',blurb:'Glowing tubes',sw:'radial-gradient(circle,#fff 0 16%,#19e6ff 22% 38%,#0a1230 72%)',round:.13,seg:10,div:16,crease:60,light:[0,0],tone:false,bg:'midnight',env:'night'},
   cartoon:{name:'Cartoon',blurb:'Flat tones, inked edge',sw:'linear-gradient(135deg,#ffd84a 0 48%,#ffab2e 48% 76%,#e0701c 76%)',round:.07,seg:4,div:16,crease:50,light:[2.2,.9],tone:false,bg:'peach',env:'softbox'},
   retro:{name:'Retro',blurb:'80s chrome',sw:'linear-gradient(180deg,#3b2bd6 0%,#ff4fd8 47%,#fff 50%,#2a0a4a 53%,#12031f 100%)',round:.07,seg:6,div:16,crease:45,light:[0,0],tone:true,bg:'dusk',env:'studio'},
@@ -417,6 +485,7 @@ const S={
     metal:{finish:'chrome',rough:.12},
     glass:{tint:'clear',frost:.06,thick:1.2},
     clay:{},wood:{},marble:{},plastic:{rough:.32},
+    lego:{n:16,studs:true,snap:true},
     neon:{glow:1.4,core:.55},
     cartoon:{outline:.05,tones:3},
     retro:{palette:'classic'},
@@ -703,6 +772,12 @@ function outlineMaterial(th){
   return m;
 }
 function visibleGlow(c){ return lum(c)<.02?new THREE.Color('#19e6ff'):c; }
+const LEGO_COLORS=['#C91A09','#0055BF','#F2CD37','#237841','#F4F4F4','#05131D','#FE8A18','#A0A5A9','#6C6E68','#E4CD9E','#A5CA18','#81007B','#FC97AC','#0A3463'].map(x=>new THREE.Color(x));
+function legoSnap(c){
+  let best=LEGO_COLORS[0],bd=1e9;
+  LEGO_COLORS.forEach(l=>{ const d=(l.r-c.r)**2*.3+(l.g-c.g)**2*.59+(l.b-c.b)**2*.11; if(d<bd){ bd=d; best=l; } });
+  return best.clone();
+}
 function materialFor(layerColor){
   const st=S.style,o=S.opts[st];
   const base=S.colorMode==='logo'?layerColor.clone():new THREE.Color(S.custom);
@@ -719,6 +794,8 @@ function materialFor(layerColor){
     m=new THREE.MeshPhysicalMaterial({color:base,roughness:.92,metalness:0,sheen:.6,sheenRoughness:.7,sheenColor:new THREE.Color(1,1,1).lerp(base,.35),bumpMap:getTex('grain'),bumpScale:.35});
   }else if(st==='plastic'){
     m=new THREE.MeshPhysicalMaterial({color:base,roughness:o.rough,metalness:0,clearcoat:1,clearcoatRoughness:.06});
+  }else if(st==='lego'){
+    m=new THREE.MeshPhysicalMaterial({color:(o.snap&&S.colorMode==='logo')?legoSnap(layerColor):base,roughness:.22,metalness:0,clearcoat:.6,clearcoatRoughness:.12});
   }else if(st==='wood'){
     m=new THREE.MeshStandardMaterial({map:getTex('wood'),roughness:.55,metalness:0});
   }else if(st==='marble'){
@@ -775,7 +852,7 @@ function rebuildGeometry(pop){
   if(!parsed) return;
   clearLogo();
   const st=STYLES[S.style],o=S.opts[S.style];
-  const res=buildLogoGeometry(parsed,norm,skipIdx(),{depth:S.depth,round:curRound(),seg:st.seg,div:S.style==='lowpoly'?o.facets:st.div,crease:S.style==='lowpoly'?0:st.crease,hull:S.style==='cartoon'});
+  const res=buildLogoGeometry(parsed,norm,skipIdx(),{depth:S.depth,round:curRound(),seg:st.seg,div:S.style==='lowpoly'?o.facets:st.div,crease:S.style==='lowpoly'?0:st.crease,hull:S.style==='cartoon',lego:S.style==='lego'?{n:o.n,studs:o.studs}:null});
   const box=new THREE.Box3();
   res.forEach((r,i)=>{
     const mesh=new THREE.Mesh(r.geom,new THREE.MeshBasicMaterial());
@@ -899,6 +976,12 @@ function renderOptions(){
   }else if(st==='clay'||st==='plastic'){
     body.append(colorControl());
     if(st==='plastic') body.append(slider('Roughness',0,.8,.01,o.rough,on('rough')));
+  }else if(st==='lego'){
+    body.append(colorControl());
+    body.append(slider('Bricks across',6,36,1,o.n,v=>{ o.n=v; queueGeometry(); },v=>String(v)));
+    body.append(h('div',{class:'field'},h('span',{class:'lbl'},h('span',{text:'Studs'})),chips([{id:'on',label:'On'},{id:'off',label:'Off'}],o.studs?'on':'off',v=>{ o.studs=v==='on'; queueGeometry(); },'Studs')));
+    body.append(h('div',{class:'field'},h('span',{class:'lbl'},h('span',{text:'Brick colors'})),chips([{id:'official',label:'Official'},{id:'exact',label:'Exact'}],o.snap?'official':'exact',v=>{ o.snap=v==='official'; applyMaterials(); },'Brick colors')));
+    body.append(h('p',{class:'note',text:'Each grid cell becomes one brick, so details smaller than a brick disappear. Raise the brick count for more detail. Depth scales the brick height.'}));
   }else if(st==='wood'||st==='marble'){
     body.append(h('p',{class:'note',text:'This style uses its own texture, so logo colors and custom colors don\u2019t apply.'}));
   }else if(st==='neon'){
@@ -1182,6 +1265,18 @@ async function makeOrbIcons(){
   const std=o=>new THREE.MeshStandardMaterial(o), phys=o=>new THREE.MeshPhysicalMaterial(o);
   const ramp=(()=>{ const d=new Uint8Array([90,172,255]); const t=new THREE.DataTexture(d,3,1,THREE.RedFormat); t.minFilter=t.magFilter=THREE.NearestFilter; t.generateMipmaps=false; t.needsUpdate=true; return t; })();
   const neon=new THREE.Color('#19e6ff');
+  const studGeo=new THREE.CylinderGeometry(.115,.115,.14,16);
+  function addStuds(sc,mat){
+    const up=new THREE.Vector3(0,1,0);
+    for(let lat=-70;lat<=70;lat+=20){
+      const ring=Math.max(1,Math.round(12*Math.cos(lat*D2R)));
+      for(let k=0;k<ring;k++){
+        const lon=(k+(((lat+70)/20)%2?.5:0))/ring*Math.PI*2, cl=Math.cos(lat*D2R);
+        const nrm=new THREE.Vector3(cl*Math.sin(lon),Math.sin(lat*D2R),cl*Math.cos(lon));
+        const m=new THREE.Mesh(studGeo,mat); m.position.copy(nrm); m.quaternion.setFromUnitVectors(up,nrm); sc.add(m);
+      }
+    }
+  }
   const defs={
     metal:()=>({env:'studio',tone:true,light:[0,0],mat:std({color:new THREE.Color().setRGB(.93,.95,.98),metalness:1,roughness:.08})}),
     glass:()=>({env:'softbox',tone:true,light:[0,0],clip:true,bg:true,mat:phys({color:new THREE.Color(1,1,1),transmission:1,thickness:1.4,ior:1.5,roughness:.02,metalness:0,clearcoat:1,clearcoatRoughness:.04})}),
@@ -1189,6 +1284,7 @@ async function makeOrbIcons(){
     wood:()=>({env:'softbox',tone:true,light:[.8,.25],mat:std({map:tex('wood',1),roughness:.5,metalness:0})}),
     marble:()=>({env:'softbox',tone:true,light:[.8,.25],mat:phys({map:tex('marble',1),roughness:.16,metalness:0,clearcoat:.7,clearcoatRoughness:.08})}),
     plastic:()=>({env:'softbox',tone:true,light:[.6,.2],mat:phys({color:new THREE.Color('#2f5cff'),roughness:.28,metalness:0,clearcoat:1,clearcoatRoughness:.06})}),
+    lego:()=>({env:'softbox',tone:true,light:[.7,.2],z:4.9,studs:true,mat:phys({color:new THREE.Color('#d01012'),roughness:.22,metalness:0,clearcoat:.6,clearcoatRoughness:.12})}),
     neon:()=>({env:'night',tone:false,light:[0,0],z:5.4,glow:true,mat:std({color:neon.clone().multiplyScalar(.15),emissive:neon.clone().lerp(new THREE.Color(1,1,1),.55),emissiveIntensity:1.6,roughness:.35,metalness:0})}),
     cartoon:()=>({env:'softbox',tone:false,light:[2.2,.9],hull:true,mat:new THREE.MeshToonMaterial({color:new THREE.Color('#ffb52e'),gradientMap:ramp})}),
     retro:()=>({env:'retro',tone:true,light:[0,0],mat:std({color:new THREE.Color(1,1,1),metalness:1,roughness:.07})}),
@@ -1202,6 +1298,7 @@ async function makeOrbIcons(){
       sc.environment=(envs[d.env]||(envs[d.env]=pm.fromScene(E[d.env](),0,.1,100))).texture;
       if(d.light[0]){ const dl=new THREE.DirectionalLight(0xffffff,d.light[0]); dl.position.set(3,4,5); sc.add(dl); sc.add(new THREE.HemisphereLight(0xffffff,0x555566,d.light[1])); }
       sc.add(new THREE.Mesh(d.ico?ico:sphere,d.mat));
+      if(d.studs) addStuds(sc,d.mat);
       if(d.hull){ const hm=outlineMaterial(.06); extra.push(hm); sc.add(new THREE.Mesh(sphere,hm)); }
       if(d.bg){
         const c=document.createElement('canvas'); c.width=c.height=128; const g=c.getContext('2d');
@@ -1228,7 +1325,7 @@ async function makeOrbIcons(){
     d.mat.dispose(); extra.forEach(o=>o.dispose&&o.dispose());
     await new Promise(r=>setTimeout(r,0));
   }
-  Object.values(envs).forEach(e=>e.dispose()); pm.dispose(); sphere.dispose(); ico.dispose(); ramp.dispose();
+  Object.values(envs).forEach(e=>e.dispose()); pm.dispose(); sphere.dispose(); ico.dispose(); ramp.dispose(); studGeo.dispose();
   r2.dispose(); if(r2.forceContextLoss) r2.forceContextLoss();
 }
 
