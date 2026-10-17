@@ -1,6 +1,8 @@
 # Plinth
 
-Turn an SVG logo into a styled 3D render. Pick a style (metal, glass, clay, wood, marble, plastic, neon, cartoon, retro, low poly), set the background, orbit to any angle, and export PNG, JPG, GLB or an animated video.
+<img src="logo-mark.svg" alt="Plinth logo" width="72">
+
+Turn an SVG logo into a styled 3D render. Pick a style (metal, glass, clay, wood, marble, plastic, lego, neon, cartoon, retro, low poly), set the background, orbit to any angle, and export PNG, JPG, GLB or an animated video.
 
 Everything runs in the browser. There is no build step and nothing to install: the whole app is `index.html`, which loads Three.js and fonts from a CDN.
 
@@ -22,3 +24,8 @@ Double-click `index.html`, or drag it into Chrome, Edge, Safari or Firefox. You 
 - GLB export saves the shape and base materials. Glow, outlines and studio reflections don't carry over.
 - Video export uses MP4 where the browser supports recording it, otherwise WebM.
 - Three.js is pinned to r147 and loaded from jsDelivr.
+
+## Brand files
+
+- `logo-mark.svg`: the P mark, built from stacked slabs.
+- `favicon.svg`: the same mark on a light rounded square. `index.html` already embeds it as the tab icon, so this file is just for your own use (for example as a repository social image or in other projects).
